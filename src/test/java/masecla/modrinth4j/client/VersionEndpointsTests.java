@@ -1,16 +1,9 @@
 package masecla.modrinth4j.client;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CompletionException;
-
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
 
 import lombok.SneakyThrows;
 import masecla.modrinth4j.data.DataUtil;
@@ -27,21 +20,26 @@ import masecla.modrinth4j.model.version.FileHash;
 import masecla.modrinth4j.model.version.ProjectVersion;
 import masecla.modrinth4j.model.version.ProjectVersion.VersionType;
 import masecla.modrinth4j.model.version.files.HashProjectVersionMap;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * This class tests the version endpoints.
  */
 public class VersionEndpointsTests {
     /** The API used for testing */
-    private ModrinthAPI client;
+    private static ModrinthAPI client;
 
     /**
      * This method sets up the client for testing.
      */
-    @Before
-    public void setupClient() {
+    @BeforeAll
+    public static void setupClient() {
         EnvReader env = new EnvReader();
-        this.client = ModrinthAPI.rateLimited(env.getAgent(), env.getStagingUrl(), env.getApiKey());
+        client = ModrinthAPI.rateLimited(env.getAgent(), env.getStagingUrl(), env.getApiKey());
 
         DataUtil.createSampleProject(client);
     }
@@ -49,8 +47,8 @@ public class VersionEndpointsTests {
     /**
      * This method wipes the project after testing.
      */
-    @After
-    public void wipeProject() {
+    @AfterAll
+    public static void wipeProject() {
         DataUtil.deleteSampleProject(client);
     }
 
@@ -83,7 +81,7 @@ public class VersionEndpointsTests {
         List<ProjectVersion> vers = client.versions().getProjectVersions(prj.getSlug(),
                 GetProjectVersionsRequest.builder().build()).join();
 
-        assertEquals("There should only be one version!", vers.size(), 1);
+        assertEquals(1, vers.size(), "There should only be one version!");
 
         // For some reason datePublished isn't consistent, so wipe it for both before
         // comparison
@@ -91,7 +89,7 @@ public class VersionEndpointsTests {
         version.setDatePublished(null);
         vers.get(0).setDatePublished(null);
 
-        assertTrue("Versions were not identical!", version.equals(vers.get(0)));
+        assertEquals(version, vers.get(0), "Versions were not identical!");
     }
 
     /**
@@ -110,9 +108,9 @@ public class VersionEndpointsTests {
         List<ProjectVersion> allVers = client.versions().getProjectVersions(prj.getSlug(),
                 GetProjectVersionsRequest.builder().build()).join();
 
-        assertEquals("Featured versions should only be 1!", featVers.size(), 1);
-        assertEquals("Unfeatured versions should only be 1!", unfeatVers.size(), 1);
-        assertEquals("All versions should only be 2!", allVers.size(), 2);
+        assertEquals(1, featVers.size(), "Featured versions should only be 1!");
+        assertEquals(1, unfeatVers.size(), "Unfeatured versions should only be 1!") ;
+        assertEquals(2, allVers.size(), "All versions should only be 2!");
 
         // Same consistency issue as above
         featVers.get(0).setDatePublished(null);
@@ -120,9 +118,8 @@ public class VersionEndpointsTests {
         featVer.setDatePublished(null);
         unfeatVer.setDatePublished(null);
 
-        assertTrue("Featured version was not the featured version!", featVers.get(0).equals(featVer));
-        assertTrue("Unfeatured version was not the unfeatured version!",
-                unfeatVers.get(0).equals(unfeatVer));
+        assertEquals(featVers.get(0), featVer, "Featured version was not the featured version!");
+        assertEquals(unfeatVers.get(0), unfeatVer, "Unfeatured version was not the unfeatured version!");
     }
 
     @Test
@@ -136,8 +133,7 @@ public class VersionEndpointsTests {
         Instant versionDate = vers.get(0).getDatePublished();
 
         // Should be less than 10 seconds apart (this should test date parsing)
-        assertTrue("Version date was not within 10 seconds of now!",
-                now.plusSeconds(10).isAfter(versionDate));
+        assertTrue(now.plusSeconds(10).isAfter(versionDate), "Version date was not within 10 seconds of now!");
     }
 
     /**
@@ -160,13 +156,13 @@ public class VersionEndpointsTests {
 
         ProjectVersion modified = client.versions().getVersion(version.getId()).join();
 
-        assertTrue("Changelog was not modified!", modified.getChangelog().equals("This is a DIFFERENT changelog"));
-        assertTrue("Featured was not modified!", modified.isFeatured() == false);
-        assertTrue("Game versions was not modified!", modified.getGameVersions().get(0).equals("1.12.2"));
-        assertTrue("Loaders was not modified!", modified.getLoaders().get(0).equals("paper"));
-        assertTrue("Name was not modified!", modified.getName().equals("diff name"));
-        assertTrue("Version number was not modified!", modified.getVersionNumber().equals("1.0.1"));
-        assertTrue("Version type was not modified!", modified.getVersionType().equals(VersionType.BETA));
+        assertEquals("This is a DIFFERENT changelog", modified.getChangelog(), "Changelog was not modified!");
+        assertFalse(modified.isFeatured(), "Featured was not modified!");
+        assertEquals("1.12.2", modified.getGameVersions().get(0), "Game versions was not modified!");
+        assertEquals("paper", modified.getLoaders().get(0), "Loaders was not modified!");
+        assertEquals("diff name", modified.getName(), "Name was not modified!");
+        assertEquals("1.0.1", modified.getVersionNumber(), "Version number was not modified!");
+        assertEquals(VersionType.BETA, modified.getVersionType(), "Version type was not modified!");
     }
 
     /**
@@ -177,8 +173,9 @@ public class VersionEndpointsTests {
         Project prj = DataUtil.fetchSampleProject(client);
         ProjectVersion version = DataUtil.appendFeaturedVersion(client, prj.getId());
         client.versions().deleteProjectVersion(version.getId()).join();
-        assertTrue(client.versions().getProjectVersions(prj.getSlug(), GetProjectVersionsRequest.builder().build())
-                .join().size() == 0);
+        assertEquals(
+            0, client.versions().getProjectVersions(prj.getSlug(), GetProjectVersionsRequest.builder().build()).join().size()
+        );
     }
 
     /**
@@ -199,7 +196,7 @@ public class VersionEndpointsTests {
                     .versionType(VersionType.RELEASE)
                     .build()).join();
         } catch (CompletionException e) {
-            assertTrue(e.getCause() instanceof EndpointException);
+            assertInstanceOf(EndpointException.class, e.getCause());
             EndpointException ex = (EndpointException) e.getCause();
             assertEquals("invalid_input", ex.getError());
             assertTrue(ex.getDescription().contains("game_versions"));
@@ -216,21 +213,21 @@ public class VersionEndpointsTests {
                 .changelog("This is a changelog")
                 .featured(true)
                 .projectId(prj.getId())
-                .gameVersions(Arrays.asList("1.12.2"))
-                .loaders(Arrays.asList("paper"))
+                .gameVersions(List.of("1.12.2"))
+                .loaders(List.of("paper"))
                 .name("name")
                 .versionNumber("1.0.0")
-                .files(Arrays.asList(DataUtil.getJar()))
+                .files(List.of(DataUtil.getJar()))
                 .versionType(VersionType.RELEASE)
                 .build()).join();
 
-        assertTrue(version.getChangelog().equals("This is a changelog"));
-        assertTrue(version.isFeatured() == true);
-        assertTrue(version.getGameVersions().get(0).equals("1.12.2"));
-        assertTrue(version.getLoaders().get(0).equals("paper"));
-        assertTrue(version.getName().equals("name"));
-        assertTrue(version.getVersionNumber().equals("1.0.0"));
-        assertTrue(version.getVersionType().equals(VersionType.RELEASE));
+        assertEquals("This is a changelog", version.getChangelog());
+        assertTrue(version.isFeatured());
+        assertEquals("1.12.2", version.getGameVersions().get(0));
+        assertEquals("paper", version.getLoaders().get(0));
+        assertEquals("name", version.getName());
+        assertEquals("1.0.0", version.getVersionNumber());
+        assertEquals(VersionType.RELEASE, version.getVersionType());
     }
 
     /**
@@ -241,9 +238,9 @@ public class VersionEndpointsTests {
     public void testAddFilesToVersion() {
         Project prj = DataUtil.fetchSampleProject(client);
         ProjectVersion version = DataUtil.appendFeaturedVersion(client, prj.getId());
-        client.versions().addFilesToVersion(version.getId(), Arrays.asList(DataUtil.getAnotherJar())).join();
+        client.versions().addFilesToVersion(version.getId(), List.of(DataUtil.getAnotherJar())).join();
 
-        assertTrue(client.versions().getVersion(version.getId()).join().getFiles().size() == 2);
+        assertEquals(2, client.versions().getVersion(version.getId()).join().getFiles().size());
     }
 
     /**
@@ -257,7 +254,7 @@ public class VersionEndpointsTests {
         ProjectVersion vers = client.versions().files()
                 .getVersionByHash(FileHash.SHA1, version.getFiles().get(0).getHashes().getSha1()).join();
 
-        assertTrue(vers.getId().equals(version.getId()));
+        assertEquals(vers.getId(), version.getId());
     }
 
     /**
@@ -271,7 +268,7 @@ public class VersionEndpointsTests {
 
         ProjectVersion vers = client.versions().getVersionByNumber(prj.getSlug(), version.getVersionNumber()).join();
 
-        assertTrue(vers.getId().equals(version.getId()));
+        assertEquals(vers.getId(), version.getId());
     }
 
     /**
@@ -307,9 +304,9 @@ public class VersionEndpointsTests {
                         version.getFiles().get(1).getHashes().getSha1())
                 .join();
 
-        assertTrue(vers.size() == 2);
-        assertTrue(vers.get(version.getFiles().get(0).getHashes().getSha1()).getId().equals(version.getId()));
-        assertTrue(vers.get(version.getFiles().get(1).getHashes().getSha1()).getId().equals(version.getId()));
+        assertEquals(2, vers.size());
+        assertEquals(vers.get(version.getFiles().get(0).getHashes().getSha1()).getId(), version.getId());
+        assertEquals(vers.get(version.getFiles().get(1).getHashes().getSha1()).getId(), version.getId());
     }
 
     /**
@@ -328,7 +325,7 @@ public class VersionEndpointsTests {
         client.versions().files().deleteFileByHash(FileHash.SHA1, version.getFiles().get(0).getHashes().getSha1())
                 .join();
 
-        assertTrue(client.versions().getVersion(version.getId()).join().getFiles().size() == 1);
+        assertEquals(1, client.versions().getVersion(version.getId()).join().getFiles().size());
     }
 
     /**
@@ -344,7 +341,7 @@ public class VersionEndpointsTests {
                         GetProjectLatestVersionFromHashRequest.builder().build())
                 .join();
 
-        assertTrue(vers.getId().equals(version.getId()));
+        assertEquals(vers.getId(), version.getId());
     }
 
     /**
@@ -370,7 +367,7 @@ public class VersionEndpointsTests {
                         .build())
                 .join();
 
-        assertTrue(vers.size() == 1);
-        assertTrue(vers.values().stream().findAny().orElse(null).getId().equals(version.getId()));
+        assertEquals(1, vers.size());
+        assertEquals(vers.values().stream().findAny().orElse(null).getId(), version.getId());
     }
 }

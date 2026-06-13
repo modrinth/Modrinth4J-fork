@@ -1,6 +1,7 @@
 plugins {
     `java-library`
     `maven-publish`
+    id("org.openapi.generator") version "7.23.0"
 }
 
 repositories {
@@ -27,10 +28,40 @@ dependencies {
     testImplementation(libs.junit.jupiter)
     testRuntimeOnly(libs.junit.platformlauncher)
 
+    implementation("jakarta.validation:jakarta.validation-api:3.0.2")
+    implementation("com.fasterxml.jackson.core:jackson-databind")
+    implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.17.0")
+    implementation("org.openapitools:jackson-databind-nullable:0.2.6")
+    implementation("io.swagger.core.v3:swagger-annotations:2.2.20")
+    implementation("jakarta.annotation:jakarta.annotation-api:3.0.0")
+
+    implementation("org.jspecify:jspecify:1.0.0")
+
     testImplementation(libs.lombok)
     testImplementation(libs.jetbrains.annotations)
     testImplementation(libs.cdimascio.dotenv)
     testImplementation(libs.commons.codec)
+}
+
+openApiGenerate {
+    generatorName.set("java")
+    inputSpec.set(layout.projectDirectory.file("src/main/resources/labrinth-open-api-3.1.0.yaml").asFile.absolutePath)
+    outputDir.set(layout.buildDirectory.dir("generated-sources").map { it.asFile.absolutePath }.get())
+    apiPackage.set("com.modrinth.client.api")
+    modelPackage.set("com.modrinth.client.model")
+    configOptions.set(mapOf(
+        "library" to "native",
+        "useJakartaEe" to "true",
+        "useJspecify" to "true"
+    ))
+}
+
+sourceSets {
+    main {
+        java {
+            srcDirs("${layout.buildDirectory.get()}/generated-sources/src/main/java")
+        }
+    }
 }
 
 tasks.compileJava {

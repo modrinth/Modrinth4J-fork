@@ -1,14 +1,7 @@
 package masecla.modrinth4j.client;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
 import java.util.UUID;
 import java.util.concurrent.CompletionException;
-
-import org.junit.Before;
-import org.junit.Test;
-
 import lombok.SneakyThrows;
 import masecla.modrinth4j.data.DataUtil;
 import masecla.modrinth4j.endpoints.user.UserEndpoints;
@@ -22,21 +15,25 @@ import masecla.modrinth4j.exception.EndpointException;
 import masecla.modrinth4j.main.ModrinthAPI;
 import masecla.modrinth4j.model.project.Project;
 import masecla.modrinth4j.model.user.ModrinthUser;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Tests the {@link UserEndpoints} class.
  */
 public class UserEndpointsTests {
     /** The client to be used */
-    private ModrinthAPI client;
+    private static ModrinthAPI client;
 
     /**
      * Sets up the client.
      */
-    @Before
-    public void setupClient() {
+    @BeforeAll
+    public static void setupClient() {
         EnvReader env = new EnvReader();
-        this.client = ModrinthAPI.rateLimited(env.getAgent(), env.getStagingUrl(), env.getApiKey());
+        client = ModrinthAPI.rateLimited(env.getAgent(), env.getStagingUrl(), env.getApiKey());
     }
 
     /**

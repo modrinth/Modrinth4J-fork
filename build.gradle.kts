@@ -24,6 +24,8 @@ dependencies {
     compileOnly(libs.lombok)
     compileOnly(libs.jetbrains.annotations)
 
+    implementation("org.jspecify:jspecify:1.0.0")
+
     testImplementation(libs.junit.jupiter)
     testRuntimeOnly(libs.junit.platformlauncher)
 
@@ -31,10 +33,6 @@ dependencies {
     testImplementation(libs.jetbrains.annotations)
     testImplementation(libs.cdimascio.dotenv)
     testImplementation(libs.commons.codec)
-}
-
-tasks.compileJava {
-    dependsOn(tasks.openApiGenerate)
 }
 
 tasks.named<Test>("test") {
